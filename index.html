@@ -122,6 +122,52 @@
     .success-text{ color: var(--success); font-weight:700 }
     .warn-text{ color: var(--warning); font-weight:700 }
 
+    /* ====== Estilos Reporte Tributario ====== */
+    .statusBox{
+      padding:16px; border-radius:14px; border:1px solid rgba(255,255,255,.12);
+      display:flex; gap:14px; align-items:flex-start;
+    }
+    .statusDot{
+      width:12px; height:12px; border-radius:999px; margin-top:4px;
+      background: var(--muted);
+    }
+    .statusBox.ok .statusDot{ background: var(--success); box-shadow: 0 0 0 6px rgba(34,197,94,.18) }
+    .statusBox.warn .statusDot{ background: var(--warning); box-shadow: 0 0 0 6px rgba(255,176,32,.18) }
+    .statusBox.over .statusDot{ background: var(--danger); box-shadow: 0 0 0 6px rgba(255,59,59,.18) }
+    .statusBody h4{ margin:0 0 4px 0; font-size:16px }
+    .statusBody .big{ font-size:22px; font-weight:900; letter-spacing:.2px }
+    .mini{ font-size:12px; color:var(--muted) }
+
+    .nrusCard{ display:grid; grid-template-columns: 1fr auto; gap:8px; align-items:center }
+    .nrusBadge{
+      padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.14);
+      font-weight:700;
+    }
+    .nrusCat1{ background: rgba(34,197,94,.12); border-color: rgba(34,197,94,.35) }
+    .nrusCat2{ background: rgba(255,176,32,.12); border-color: rgba(255,176,32,.35) }
+    .nrusOut{ background: rgba(255,59,59,.12); border-color: rgba(255,59,59,.35) }
+
+    /* Sello SUNAT minimalista */
+    .sunat-seal{
+      width:86px; height:86px; border:3px solid #e11d48; /* rojo frambuesa */
+      border-radius:10px; position:relative; display:flex; align-items:center; justify-content:center;
+      transform: rotate(-6deg);
+      box-shadow: inset 0 0 0 4px rgba(225,29,72,.15), 0 2px 10px rgba(0,0,0,.25);
+      background: rgba(255,255,255,.06);
+    }
+    .sunat-seal::after{
+      content:"SUNAT";
+      font-weight:900; letter-spacing:2px; font-size:16px;
+      color:#60a5fa; /* celeste */
+      text-shadow: 0 1px 0 rgba(0,0,0,.35);
+    }
+    .legalBox{
+      display:flex; gap:14px; align-items:center; margin-top:12px;
+      padding:12px; border-radius:14px; border:1px dashed rgba(255,255,255,.18);
+      background: rgba(255,255,255,.04);
+    }
+    .legalBox .text{ font-size:12px; color: var(--muted) }
+    .legalBox a{ color: var(--info); text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -168,6 +214,7 @@
         <button class="tab active" data-tab="stockTab">Stock</button>
         <button class="tab" data-tab="ventasTab">Ventas</button>
         <button class="tab" data-tab="graficosTab">Gráficos</button>
+        <button class="tab" data-tab="tributarioTab">Reporte Tributario</button>
         <button class="tab" data-tab="exportarTab">Exportar</button>
         <button class="tab" data-tab="adminTab">Admin</button>
         <div class="right toolbar">
@@ -303,6 +350,64 @@
         </div>
       </div>
 
+      <!-- NUEVA: REPORTE TRIBUTARIO TAB -->
+      <div id="tributarioTab" class="tabPanel hidden">
+        <h2>Reporte Tributario (NRUS)</h2>
+
+        <div class="grid cols-2">
+          <!-- MENSUAL -->
+          <div class="section">
+            <div id="rtMonthly" class="statusBox">
+              <div class="statusDot"></div>
+              <div class="statusBody">
+                <h4>Control mensual – Límite NRUS: <strong>S/ 8,000</strong></h4>
+                <div class="big" id="rtMonthlyAmount">S/ 0.00</div>
+                <div class="mini">
+                  <span id="rtMonthlyMsg">Sin movimientos en el mes.</span><br/>
+                  <span id="rtMonthlyLeft"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ANUAL -->
+          <div class="section">
+            <div id="rtYearly" class="statusBox">
+              <div class="statusDot"></div>
+              <div class="statusBody">
+                <h4>Control anual – Límite NRUS: <strong>S/ 96,000</strong></h4>
+                <div class="big" id="rtYearlyAmount">S/ 0.00</div>
+                <div class="mini">
+                  <span id="rtYearlyMsg">Sin movimientos en el año.</span><br/>
+                  <span id="rtYearlyLeft"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CATEGORÍA -->
+          <div class="section" style="grid-column: span 2">
+            <h3 style="margin:0 0 8px 0">Categoría NRUS correspondiente (mensual)</h3>
+            <div class="nrusCard">
+              <div>
+                <div id="rtNRUSCat" class="nrusBadge">—</div>
+                <div class="mini" id="rtNRUSNote" style="margin-top:6px">Se calcula según ventas del mes.</div>
+              </div>
+              <div class="pill"><span>ℹ️</span><span id="rtNRUSHelp">Cat. 1: ≤ S/ 5,000 → cuota S/ 20 · Cat. 2: > S/ 5,000 y ≤ S/ 8,000 → cuota S/ 50</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SELLO + REFERENCIA SUNAT -->
+        <div class="legalBox">
+          <div class="sunat-seal" aria-hidden="true"></div>
+          <div class="text">
+            Información basada en el <strong>Nuevo Régimen Único Simplificado (NRUS)</strong> – SUNAT.<br/>
+            Fuente oficial: <a href="https://emprender.sunat.gob.pe/ruc/regimenes-tributarios-mype/nuevo-regimen-unico-simplificado-nuevo-rus" target="_blank" rel="noopener">SUNAT – Emprender: NRUS</a> · Límites referenciales: S/ 8,000 mensual y S/ 96,000 anual; categorías NRUS Cat. 1 (≤ 5,000 → S/ 20) y Cat. 2 (> 5,000 y ≤ 8,000 → S/ 50).
+          </div>
+        </div>
+      </div>
+
       <!-- EXPORTAR TAB -->
       <div id="exportarTab" class="tabPanel hidden">
         <h2>Exportar</h2>
@@ -360,7 +465,15 @@
       const yy = dt.getFullYear();
       return `${dd}/${mm}/${yy}`;
     };
-
+    const ymd = (date)=> {
+      const d = new Date(date);
+      return { y: d.getFullYear(), m: d.getMonth()+1, d: d.getDate() };
+    };
+    const monthKey = (date) => {
+      const d = new Date(date);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    };
+    const yearKey = (date) => String(new Date(date).getFullYear());
     const uid = () => Math.random().toString(36).slice(2,9);
 
     /****************************
@@ -376,7 +489,7 @@
     };
 
     /****************************
-     * Gestión de usuarios (credenciales administradas por usted)
+     * Gestión de usuarios
      ****************************/
     const USERS_KEY = 'bodega:__users__';
     const Users = {
@@ -444,7 +557,7 @@
       refreshCharts();
       refreshUsersAdmin();
       populateSaleProducts();
-
+      refreshTaxReport(); // <— NUEVO
       // Solo admin puede ver la pestaña Admin
       const adminTabBtn = $(`.tab[data-tab="adminTab"]`);
       if(Session.user==='admin'){ adminTabBtn.classList.remove('hidden'); }
@@ -520,7 +633,6 @@
           <button class="btn flat" data-action="del">Eliminar</button>
         </td>
       `;
-      // Handlers
       tr.querySelector('[data-action="save"]').addEventListener('click', ()=> saveRow(tr, p.id));
       tr.querySelector('[data-action="del"]').addEventListener('click', ()=> deleteProduct(p.id));
       return tr;
@@ -666,6 +778,7 @@
       populateSaleProducts();
       refreshAlerts();
       refreshCharts();
+      refreshTaxReport(); // <— NUEVO: actualizar reporte tributario
     }
 
     $('#btnSale').addEventListener('click', addSale);
@@ -715,6 +828,7 @@
       populateSaleProducts();
       refreshAlerts();
       refreshCharts();
+      refreshTaxReport(); // <— NUEVO: actualizar reporte tributario
     }
 
     /****************************
@@ -768,7 +882,7 @@
       const arr = Array.from(byProd.values()).sort((a,b)=> b.qty-a.qty);
       const top = arr.slice(0,8);
       const max = top.length? top[0].qty : 0;
-      top.forEach((it, idx)=>{
+      top.forEach((it)=>{
         const ratio = max? it.qty / max : 0;
         let arrow = '—', cls='flat';
         if(ratio>=0.66) { arrow='▲'; cls='up'; }
@@ -778,6 +892,88 @@
         row.innerHTML = `<span class="arrow ${cls}">${arrow}</span> <div class="value" style="min-width:38px">${it.qty}</div> <div class="subtle">${it.name}</div>`;
         perfBox.appendChild(row);
       })
+    }
+
+    /****************************
+     * NUEVO: Reporte Tributario (NRUS)
+     ****************************/
+    const NRUS = {
+      MONTHLY_LIMIT: 8000,
+      YEARLY_LIMIT: 96000,
+      CAT1_LIMIT: 5000,
+      WARNING_RATIO: 0.85, // 85% del tope -> amarillo
+    };
+
+    function getMonthlyRevenueCurrent(){
+      const mk = monthKey(new Date());
+      return DB.sales().reduce((acc,s)=> acc + (monthKey(s.date)===mk ? s.revenue : 0), 0);
+    }
+    function getYearlyRevenueCurrent(){
+      const yk = yearKey(new Date());
+      return DB.sales().reduce((acc,s)=> acc + (yearKey(s.date)===yk ? s.revenue : 0), 0);
+    }
+
+    function paintStatus(el, state){
+      el.classList.remove('ok','warn','over');
+      el.classList.add(state);
+    }
+
+    function refreshTaxReport(){
+      if(!Session.user) return;
+
+      // MENSUAL
+      const m = getMonthlyRevenueCurrent();
+      $('#rtMonthlyAmount').textContent = fmtMoney(m);
+      const mLeft = Math.max(0, NRUS.MONTHLY_LIMIT - m);
+      $('#rtMonthlyLeft').textContent = `Restante del tope mensual: ${fmtMoney(mLeft)} (tope: S/ ${NRUS.MONTHLY_LIMIT.toFixed(2)})`;
+
+      const mBox = $('#rtMonthly');
+      if(m <= NRUS.MONTHLY_LIMIT * NRUS.WARNING_RATIO){
+        paintStatus(mBox,'ok');
+        $('#rtMonthlyMsg').textContent = 'En rango permitido del NRUS para este mes.';
+      } else if(m <= NRUS.MONTHLY_LIMIT){
+        paintStatus(mBox,'warn');
+        $('#rtMonthlyMsg').textContent = 'Atención: estás cerca de alcanzar el tope mensual del NRUS.';
+      } else {
+        paintStatus(mBox,'over');
+        $('#rtMonthlyMsg').textContent = 'Has superado el tope mensual del NRUS. Evalúa si corresponde cambiar de régimen.';
+      }
+
+      // ANUAL
+      const y = getYearlyRevenueCurrent();
+      $('#rtYearlyAmount').textContent = fmtMoney(y);
+      const yLeft = Math.max(0, NRUS.YEARLY_LIMIT - y);
+      $('#rtYearlyLeft').textContent = `Restante del tope anual: ${fmtMoney(yLeft)} (tope: S/ ${NRUS.YEARLY_LIMIT.toFixed(2)})`;
+
+      const yBox = $('#rtYearly');
+      if(y <= NRUS.YEARLY_LIMIT * NRUS.WARNING_RATIO){
+        paintStatus(yBox,'ok');
+        $('#rtYearlyMsg').textContent = 'En rango permitido del NRUS para este año.';
+      } else if(y <= NRUS.YEARLY_LIMIT){
+        paintStatus(yBox,'warn');
+        $('#rtYearlyMsg').textContent = 'Atención: estás cerca de alcanzar el tope anual del NRUS.';
+      } else {
+        paintStatus(yBox,'over');
+        $('#rtYearlyMsg').textContent = 'Has superado el tope anual del NRUS. Evalúa si corresponde cambiar de régimen.';
+      }
+
+      // CATEGORÍA (según ventas del mes)
+      const catEl = $('#rtNRUSCat');
+      const noteEl = $('#rtNRUSNote');
+      catEl.classList.remove('nrusCat1','nrusCat2','nrusOut');
+      if(m <= NRUS.CAT1_LIMIT){
+        catEl.textContent = 'Categoría 1 (cuota S/ 20)';
+        catEl.classList.add('nrusCat1');
+        noteEl.textContent = 'Tus ventas del mes están en Categoría 1 del NRUS.';
+      } else if(m > NRUS.CAT1_LIMIT && m <= NRUS.MONTHLY_LIMIT){
+        catEl.textContent = 'Categoría 2 (cuota S/ 50)';
+        catEl.classList.add('nrusCat2');
+        noteEl.textContent = 'Tus ventas del mes están en Categoría 2 del NRUS.';
+      } else {
+        catEl.textContent = 'Fuera de límite NRUS (mensual)';
+        catEl.classList.add('nrusOut');
+        noteEl.textContent = 'Has superado el tope mensual del NRUS; podría corresponder migrar de régimen.';
+      }
     }
 
     /****************************
@@ -853,6 +1049,9 @@
     $('#saleDate').value = todayISO();
     if(Session.user){ initApp(); }
     else { $('#loginView').classList.remove('hidden'); }
+
+    // También actualizamos el Reporte Tributario si cambian de pestaña (por si hay retraso en DOM)
+    document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refreshTaxReport(); });
   </script>
 </body>
 </html>
