@@ -1,1059 +1,456 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BodegaManager – Monitoreo de Bodegas</title>
-  <!-- Librerías desde CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CACE — BodegaManager | Control de bodegas</title>
+
+  <!-- Paleta de la marca -->
   <style>
     :root{
-      /* Paleta vibrante y translúcida */
-      --bg:#0b0b12;
-      --panel: rgba(255,255,255,0.08);
-      --panel-strong: rgba(255,255,255,0.12);
-      --glass: rgba(255,255,255,0.08);
-      --text:#f3f5f7;
-      --muted:#b7c0cd;
-      --accent1:#921cb2;
-      --accent2:#d41969;
-      --accent3:#00ff65;
-      --accent4:#d9f51d;
-      --danger:#ff3b3b;
-      --warning:#ffb020;
-      --success:#22c55e;
-      --info:#60a5fa;
-      --shadow: 0 10px 30px rgba(0,0,0,.35);
-      --radius: 18px;
+      --black:#000000;
+      --purple:#921cb2;
+      --pink:#d41969;
+      --white:#ffffff;
+      --yellow:#d9f51d;
+      --neon:#00ff65;
+
+      --bg-gradient-start:#2D003A;
+      --bg-gradient-end:#00331E;
+      --card-bg: rgba(255,255,255,0.03);
+      --glass: rgba(255,255,255,0.04);
+      --muted: rgba(255,255,255,0.75);
+      --radius: 14px;
+      --shadow: 0 6px 24px rgba(0,0,0,0.45);
+      --maxw: 1100px;
+      --accent-gradient: linear-gradient(135deg,var(--pink),var(--purple));
     }
 
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
-      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
-      color:var(--text); background: radial-gradient(1200px 700px at 10% -10%, rgba(146,28,178,.3), transparent),
-                            radial-gradient(1000px 600px at 110% 10%, rgba(212,25,105,.25), transparent),
-                            radial-gradient(1000px 600px at 50% 120%, rgba(0,255,101,.18), transparent),
-                            var(--bg);
+      margin:0;
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: linear-gradient(180deg,var(--bg-gradient-start) 0%, #48124b 40%, var(--bg-gradient-end) 100%);
+      color:var(--white);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      line-height:1.45;
+      padding-bottom:120px;
     }
 
-    .app{max-width:1200px; margin:0 auto; padding:28px}
-
-    .card{
-      background: var(--panel);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
+    .container{
+      max-width:var(--maxw);
+      margin:0 auto;
+      padding:28px;
     }
 
     header{
-      display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:22px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      padding:14px 0;
     }
-    .brand{display:flex; align-items:center; gap:12px}
-    .logo{width:38px; height:38px; border-radius:12px; background:linear-gradient(135deg,var(--accent1),var(--accent2)); box-shadow: 0 4px 16px rgba(212,25,105,.45)}
-    .brand h1{font-size:20px; margin:0; letter-spacing:.4px}
-    .tag{font-size:12px; color:var(--muted)}
-
-    .login, .dashboard{padding:22px}
-
-    .grid{display:grid; gap:16px}
-    .grid.cols-2{grid-template-columns: 1fr 1fr}
-    .grid.cols-3{grid-template-columns: repeat(3, 1fr)}
-    @media (max-width: 960px){ .grid.cols-3{grid-template-columns: 1fr} .grid.cols-2{grid-template-columns:1fr} }
-
-    .input, select, .btn, .tab{
-      border-radius: 14px; border:1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.06); color:var(--text);
-      padding:12px 14px; outline:none; transition:.2s ease; font-size:14px;
+    .brand{
+      display:flex;
+      gap:12px;
+      align-items:center;
     }
-    .input:focus, select:focus{ border-color: var(--accent2); box-shadow: 0 0 0 4px rgba(212,25,105,.18)}
-
-    .btn{ cursor:pointer; font-weight:600; letter-spacing:.3px }
-    .btn.primary{ background:linear-gradient(135deg,var(--accent1),var(--accent2)); border:0 }
-    .btn.success{ background:linear-gradient(135deg,#16a34a,#22c55e); border:0 }
-    .btn.warn{ background:linear-gradient(135deg,#f59e0b,#fbbf24); border:0 }
-    .btn.ghost{ background:transparent }
-    .btn.flat{ background: rgba(255,255,255,.06) }
-    .btn:disabled{ opacity:.6; cursor:not-allowed }
-
-    .tabs{ display:flex; gap:8px; flex-wrap:wrap; margin: 14px 0 }
-    .tab{ cursor:pointer; user-select:none; }
-    .tab.active{ background: linear-gradient(135deg,var(--accent1),var(--accent2)); border:0 }
-
-    .notice{ font-size:12px; color: var(--muted)}
-
-    table{ width:100%; border-collapse: collapse; font-size:14px }
-    th, td{ padding:12px 10px; border-bottom:1px solid rgba(255,255,255,.08) }
-    th{ text-align:left; color:var(--muted) }
-
-    .pill{ padding:6px 10px; border-radius:999px; font-size:12px; border:1px solid rgba(255,255,255,.12); display:inline-flex; gap:8px; align-items:center }
-    .pill.red{ background: rgba(255,59,59,.12); border-color: rgba(255,59,59,.35) }
-    .pill.yellow{ background: rgba(255,176,32,.12); border-color: rgba(255,176,32,.35) }
-    .pill.green{ background: rgba(34,197,94,.12); border-color: rgba(34,197,94,.35) }
-
-    .status{ font-weight:700 }
-    .arrow{ font-weight:900; font-size:16px }
-    .arrow.up{ color: var(--success)}
-    .arrow.down{ color: var(--danger)}
-    .arrow.flat{ color: var(--warning)}
-
-    .alert-list{ display:flex; flex-direction:column; gap:10px }
-    .alert-item{ padding:12px 14px; border-radius:14px; background: var(--panel-strong); border:1px solid rgba(255,255,255,.12) }
-    .alert-danger{ border-color: rgba(255,59,59,.6) }
-    .alert-warn{ border-color: rgba(255,176,32,.6) }
-
-    .section{ padding:14px; background: var(--panel); border-radius: var(--radius); border:1px solid rgba(255,255,255,.12) }
-
-    .toolbar{ display:flex; gap:8px; flex-wrap:wrap }
-    .right{ margin-left:auto }
-
-    .hidden{ display:none !important }
-
-    .footer{ margin-top:24px; font-size:12px; color:var(--muted); text-align:center }
-
-    .kpi{ display:flex; gap:10px; align-items:center }
-    .kpi .value{ font-size:20px; font-weight:800 }
-
-    .subtle{ color: var(--muted) }
-
-    .danger-text{ color: var(--danger); font-weight:700 }
-    .success-text{ color: var(--success); font-weight:700 }
-    .warn-text{ color: var(--warning); font-weight:700 }
-
-    /* ====== Estilos Reporte Tributario ====== */
-    .statusBox{
-      padding:16px; border-radius:14px; border:1px solid rgba(255,255,255,.12);
-      display:flex; gap:14px; align-items:flex-start;
-    }
-    .statusDot{
-      width:12px; height:12px; border-radius:999px; margin-top:4px;
-      background: var(--muted);
-    }
-    .statusBox.ok .statusDot{ background: var(--success); box-shadow: 0 0 0 6px rgba(34,197,94,.18) }
-    .statusBox.warn .statusDot{ background: var(--warning); box-shadow: 0 0 0 6px rgba(255,176,32,.18) }
-    .statusBox.over .statusDot{ background: var(--danger); box-shadow: 0 0 0 6px rgba(255,59,59,.18) }
-    .statusBody h4{ margin:0 0 4px 0; font-size:16px }
-    .statusBody .big{ font-size:22px; font-weight:900; letter-spacing:.2px }
-    .mini{ font-size:12px; color:var(--muted) }
-
-    .nrusCard{ display:grid; grid-template-columns: 1fr auto; gap:8px; align-items:center }
-    .nrusBadge{
-      padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.14);
+    .logo{
+      width:52px;
+      height:52px;
+      border-radius:12px;
+      background:var(--accent-gradient);
+      box-shadow: 0 6px 18px rgba(145,28,178,0.32);
+      display:flex;
+      align-items:center;
+      justify-content:center;
       font-weight:700;
+      color:var(--white);
+      font-size:18px;
     }
-    .nrusCat1{ background: rgba(34,197,94,.12); border-color: rgba(34,197,94,.35) }
-    .nrusCat2{ background: rgba(255,176,32,.12); border-color: rgba(255,176,32,.35) }
-    .nrusOut{ background: rgba(255,59,59,.12); border-color: rgba(255,59,59,.35) }
+    .brand h1{margin:0;font-size:20px;letter-spacing:0.2px}
+    .brand p{margin:0;font-size:12px;opacity:0.85;color:var(--muted)}
 
-    /* Sello SUNAT minimalista */
-    .sunat-seal{
-      width:86px; height:86px; border:3px solid #e11d48; /* rojo frambuesa */
-      border-radius:10px; position:relative; display:flex; align-items:center; justify-content:center;
-      transform: rotate(-6deg);
-      box-shadow: inset 0 0 0 4px rgba(225,29,72,.15), 0 2px 10px rgba(0,0,0,.25);
-      background: rgba(255,255,255,.06);
+    nav .cta{
+      background:var(--accent-gradient);
+      color:var(--white);
+      padding:10px 16px;
+      border-radius:12px;
+      font-weight:600;
+      text-decoration:none;
+      box-shadow: 0 8px 28px rgba(212,25,105,0.18);
+      display:inline-flex;
+      gap:10px;
+      align-items:center;
     }
-    .sunat-seal::after{
-      content:"SUNAT";
-      font-weight:900; letter-spacing:2px; font-size:16px;
-      color:#60a5fa; /* celeste */
-      text-shadow: 0 1px 0 rgba(0,0,0,.35);
+    nav .cta svg{height:18px;width:18px}
+
+    /* Hero */
+    .hero{
+      display:grid;
+      grid-template-columns:1fr 420px;
+      gap:28px;
+      align-items:center;
+      padding:28px 0 40px;
     }
-    .legalBox{
-      display:flex; gap:14px; align-items:center; margin-top:12px;
-      padding:12px; border-radius:14px; border:1px dashed rgba(255,255,255,.18);
-      background: rgba(255,255,255,.04);
+    .hero .left{
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      padding:28px;
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      backdrop-filter: blur(6px);
     }
-    .legalBox .text{ font-size:12px; color: var(--muted) }
-    .legalBox a{ color: var(--info); text-decoration: underline; }
+    .kicker{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      font-weight:700;
+      font-size:13px;
+      color:var(--yellow);
+      background: rgba(217,245,29,0.06);
+      padding:6px 10px;
+      border-radius:999px;
+      width:max-content;
+      margin-bottom:12px;
+    }
+    .hero h2{
+      margin:6px 0 12px;
+      font-size:32px;
+      line-height:1.05;
+    }
+    .hero p.lead{color:rgba(255,255,255,0.88); margin:0 0 16px}
+    .features-grid{
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:12px;
+      margin-top:16px;
+    }
+    .feature{
+      background:var(--card-bg);
+      padding:10px;
+      border-radius:10px;
+      font-size:13px;
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+    }
+    .feature .dot{width:10px;height:10px;border-radius:50%;background:var(--neon);margin-top:6px;flex:0 0 10px}
+
+    /* Right card */
+    .hero .card{
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.08));
+      padding:18px;
+      border-radius:16px;
+      box-shadow:var(--shadow);
+    }
+
+    .hero .card h3{margin:0 0 6px}
+    .price{
+      font-size:36px;
+      font-weight:800;
+      color:var(--yellow);
+      margin:8px 0 10px;
+    }
+    .small{font-size:13px;color:rgba(255,255,255,0.9) }
+
+    /* Benefits section */
+    .benefits{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:18px;
+      margin-top:28px;
+    }
+    .card-benefit{
+      background:var(--glass);
+      padding:18px;
+      border-radius:14px;
+      transition:transform .28s ease, box-shadow .28s ease;
+      border:1px solid rgba(255,255,255,0.04);
+    }
+    .card-benefit:hover{
+      transform:translateY(-6px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    }
+    .card-benefit h4{margin:0 0 8px}
+    .card-benefit p{margin:0;color:var(--muted);font-size:14px}
+    .convince{margin-top:12px;background:rgba(255,255,255,0.02);padding:10px;border-radius:10px;font-size:13px;color:var(--white)}
+
+    /* Pricing */
+    .pricing{
+      margin-top:28px;
+      display:flex;
+      gap:14px;
+      align-items:stretch;
+    }
+    .plan{
+      flex:1;
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));
+      padding:18px;border-radius:14px;border:1px solid rgba(255,255,255,0.035);
+    }
+    .plan.best{border:2px solid rgba(145,28,178,0.28); box-shadow: 0 12px 30px rgba(145,28,178,0.12)}
+    .plan h3{margin:0 0 6px}
+    .price-big{font-size:40px;font-weight:800;color:var(--yellow)}
+    .perday{font-size:13px;color:rgba(255,255,255,0.85); margin-top:6px}
+    .checks{margin-top:12px}
+    .checks li{margin:8px 0; list-style:none; display:flex; gap:8px; align-items:center}
+    .checks li::before{content:'✓'; color:var(--neon); font-weight:700; margin-right:6px}
+
+    .cta-whatsapp{
+      display:inline-flex;
+      gap:12px;
+      align-items:center;
+      padding:12px 16px;
+      border-radius:12px;
+      background:var(--accent-gradient);
+      color:var(--white);
+      text-decoration:none;
+      font-weight:700;
+      margin-top:14px;
+      box-shadow: 0 12px 40px rgba(212,25,105,0.16);
+    }
+
+    /* FAQ */
+    .faq{margin-top:28px}
+    .qa{background:var(--card-bg);padding:12px;border-radius:10px;margin-bottom:8px}
+    .qa h5{margin:0;font-size:15px;cursor:pointer}
+    .qa p{margin:8px 0 0;color:var(--muted);display:none;font-size:14px}
+
+    /* Footer */
+    footer{margin-top:36px;padding:22px 0;text-align:center;color:rgba(255,255,255,0.65)}
+    .footer-small{font-size:13px}
+
+    /* Floating whatsapp */
+    .float-wa{
+      position:fixed;
+      right:18px;
+      bottom:18px;
+      z-index:9999;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      background: linear-gradient(90deg,var(--pink),var(--purple));
+      padding:12px 14px;
+      border-radius:999px;
+      box-shadow: 0 18px 50px rgba(145,28,178,0.2);
+      text-decoration:none;
+      color:var(--white);
+      font-weight:800;
+    }
+
+    /* Responsive */
+    @media (max-width:980px){
+      .hero{grid-template-columns:1fr; padding-bottom:6px}
+      .benefits{grid-template-columns:repeat(2,1fr)}
+      .pricing{flex-direction:column}
+      .brand h1{font-size:18px}
+    }
+    @media (max-width:600px){
+      .benefits{grid-template-columns:1fr}
+      .features-grid{grid-template-columns:1fr}
+      .hero h2{font-size:24px}
+      .price-big{font-size:30px}
+    }
+
   </style>
 </head>
 <body>
-  <div class="app">
+  <div class="container">
     <header>
       <div class="brand">
-        <div class="logo"></div>
+        <div class="logo">C</div>
         <div>
-          <h1>BodegaManager</h1>
-          <div class="tag">Monitoreo y soporte para bodegas minoristas</div>
+          <h1>CACE</h1>
+          <p>BodegaManager — Monitoreo y soporte para bodegas</p>
         </div>
       </div>
-      <div id="userBox" class="tag"></div>
+      <nav>
+        <!-- WhatsApp CTA header -->
+        <a class="cta" target="_blank" rel="noopener" href="https://wa.me/51949104580?text=Hola%20Arnie%2C%20quiero%20más%20info%20sobre%20CACE%20BodegaManager">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden><path d="M21 3H3v18l4-1 5 1 8-6V3z" fill="white" opacity=".06"/></svg>
+          Contacto WhatsApp
+        </a>
+      </nav>
     </header>
 
-    <!-- LOGIN -->
-    <section id="loginView" class="login card">
-      <h2>Iniciar sesión</h2>
-      <p class="notice">Debajo indicamos: <strong>Protegemos su privacidad y sus datos.</strong> Sus credenciales son proporcionadas por el administrador.</p>
-      <div class="grid cols-2" style="margin-top:12px">
-        <div class="section">
-          <div class="grid cols-1">
-            <label>Usuario</label>
-            <input id="loginUser" class="input" autocomplete="username" placeholder="ej. bodega_central" />
-            <label style="margin-top:10px">Contraseña</label>
-            <input id="loginPass" type="password" class="input" autocomplete="current-password" placeholder="••••••" />
-          </div>
-          <div class="toolbar" style="margin-top:14px">
-            <button id="btnLogin" class="btn primary">Entrar</button>
-            <span id="loginMsg" class="notice"></span>
-          </div>
+    <!-- HERO -->
+    <section class="hero" aria-label="Presentación de producto">
+      <div class="left" role="main">
+        <div class="kicker">TRanquilidad · Control · Más ingresos</div>
+        <h2>Control total de tu bodega desde el celular — sin complicaciones</h2>
+        <p class="lead">CACE — BodegaManager ayuda a emprendedores a reducir pérdidas por vencimientos, evitar rupturas de stock y llevar reportes listos para SUNAT. Fácil, rápido y hecho para bodegas reales.</p>
+
+        <div class="features-grid" aria-hidden>
+          <div class="feature"><div class="dot"></div><div><strong>Alertas de vencimiento</strong><div style="font-size:13px;color:var(--muted)">Te avisamos antes de que pierdas producto.</div></div></div>
+          <div class="feature"><div class="dot"></div><div><strong>Stock en tiempo real</strong><div style="font-size:13px;color:var(--muted)">Nunca más "No hay" cuando el cliente lo pide.</div></div></div>
+          <div class="feature"><div class="dot"></div><div><strong>Reportes para SUNAT</strong><div style="font-size:13px;color:var(--muted)">Exportas en 1 clic y reduces riesgo de multas.</div></div></div>
+          <div class="feature"><div class="dot"></div><div><strong>Fiados y pagos</strong><div style="font-size:13px;color:var(--muted)">Registra fiados y acepta Yape/Plin/Transferencias.</div></div></div>
         </div>
-        <div class="section">
-          <h3 style="margin-top:0">Nota para el administrador</h3>
-          <p class="notice">Las cuentas son administradas por usted. Puede preconfigurarlas y/o gestionarlas desde el panel “Admin”. Los datos de cada usuario se aíslan por completo.</p>
-          <div class="pill"><span>🔐</span>Privacidad y datos protegidos</div>
+
+        <!-- Quick trust -->
+        <div style="margin-top:16px; display:flex; gap:12px; align-items:center;">
+          <div style="background:rgba(255,255,255,0.03); padding:8px 12px; border-radius:10px; font-weight:700">Prueba 7 días</div>
+          <div style="font-size:13px;color:var(--muted)">Soporte personalizado y ayuda para configurar</div>
         </div>
+      </div>
+
+      <aside class="card" aria-label="Tarjeta de precios rápida">
+        <h3>Empieza hoy</h3>
+        <div class="price">Tu inversión inicial</div>
+        <div class="price-big">S/ 30 / mes</div>
+        <div class="small">O el plan anual S/300 — ahorras 2 meses</div>
+        <div style="margin-top:12px">
+          <a class="cta-whatsapp" target="_blank" rel="noopener" href="https://wa.me/51949104580?text=Hola%20quiero%20información%20sobre%20CACE%20BodegaManager">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M20 3H4c-1.1 0-2 .9-2 2v14l4-4h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z" fill="white" opacity=".08"/></svg>
+            Chatea por WhatsApp
+          </a>
+        </div>
+      </aside>
+    </section>
+
+    <!-- BENEFITS -->
+    <section>
+      <h3 style="margin:0 0 12px">Qué resuelve CACE / BodegaManager</h3>
+      <div class="benefits" role="list">
+        <article class="card-benefit" role="listitem">
+          <h4>Control de vencimientos</h4>
+          <p>Recibe alertas automáticas cuando un lote está cerca de vencer. Evita pérdidas y devoluciones.</p>
+          <div class="convince"><strong>Por qué te ayuda:</strong> cada producto que no vendes por vencimiento es dinero perdido. Con alertas anticipadas reduces mermas, recuperas inversión y mantienes clientes felices.</div>
+        </article>
+
+        <article class="card-benefit" role="listitem">
+          <h4>Stock y reaprovisionamiento</h4>
+          <p>Niveles mínimos configurables y órdenes sugeridas para que nunca te sorprendan los quiebres de stock.</p>
+          <div class="convince"><strong>Por qué te ayuda:</strong> las ventas que pierdes por falta de stock son ventas que no vuelven. Controlar stock significa más ingresos estables sin invertir de más.</div>
+        </article>
+
+        <article class="card-benefit" role="listitem">
+          <h4>Reportes para SUNAT</h4>
+          <p>Exporta reportes listos con totales de ventas e impuestos para declarar sin errores.</p>
+          <div class="convince"><strong>Por qué te ayuda:</strong> evitar multas y sanciones significa menor riesgo financiero. Además ahorras tiempo del contador y reduces estrés mensual.</div>
+        </article>
+
+        <article class="card-benefit" role="listitem">
+          <h4>Fiados y clientes</h4>
+          <p>Registra créditos a clientes, fechas de pago y alertas de vencimiento de deuda.</p>
+          <div class="convince"><strong>Por qué te ayuda:</strong> controlar fiados reduce pérdidas por olvido y mejora la cobranza sin confrontaciones. Tener historial te permite ofrecer crédito responsablemente.</div>
+        </article>
+
+        <article class="card-benefit" role="listitem">
+          <h4>Proveedores y compras</h4>
+          <p>Historial de compras, tiempos de entrega y costos por proveedor para tomar mejores decisiones de compra.</p>
+          <div class="convince"><strong>Por qué te ayuda:</strong> comprar mejor te permite reducir sobrestock y negociar mejores precios, liberando capital para crecer.</div>
+        </article>
+
+        <article class="card-benefit" role="listitem">
+          <h4>Métodos de pago digitales</h4>
+          <p>Registra ventas por efectivo, Yape, Plin o transferencia; conciliación simple.</p>
+          <div class="convince"><strong>Por qué te ayuda:</strong> aceptar pagos digitales aumenta ventas y facilita conciliación, evitando errores contables que generan problemas al cierre.</div>
+        </article>
       </div>
     </section>
 
-    <!-- DASHBOARD -->
-    <section id="dashboard" class="dashboard card hidden">
-      <div class="tabs">
-        <button class="tab active" data-tab="stockTab">Stock</button>
-        <button class="tab" data-tab="ventasTab">Ventas</button>
-        <button class="tab" data-tab="graficosTab">Gráficos</button>
-        <button class="tab" data-tab="tributarioTab">Reporte Tributario</button>
-        <button class="tab" data-tab="exportarTab">Exportar</button>
-        <button class="tab" data-tab="adminTab">Admin</button>
-        <div class="right toolbar">
-          <button id="btnLogout" class="btn flat">Cerrar sesión</button>
+    <!-- PRICING -->
+    <section class="pricing" aria-label="Planes y precios">
+      <div class="plan">
+        <h3>Plan Mensual</h3>
+        <div class="price-big">S/ 30.00</div>
+        <div class="perday">≈ <strong>S/ 1.00</strong> por día</div>
+        <ul class="checks" aria-hidden>
+          <li>Acceso completo al sistema</li>
+          <li>Alertas de vencimiento</li>
+          <li>Control de stock y reportes SUNAT</li>
+          <li>Soporte personalizado</li>
+        </ul>
+        <div class="convince" style="margin-top:10px">
+          <strong>Mensaje de convencimiento:</strong>
+          Pagar S/30 al mes significa invertir 1 sol al día para proteger tu inventario, reducir pérdidas y asegurar ventas constantes. Si un solo lote te salva de perder S/50, ya pagaste más del mes.
         </div>
+
+        <a class="cta-whatsapp" target="_blank" rel="noopener" href="https://wa.me/51949104580?text=Hola%20quiero%20el%20Plan%20Mensual%20S%2030%20de%20CACE">
+          Contratar Mensual
+        </a>
       </div>
 
-      <!-- STOCK TAB -->
-      <div id="stockTab" class="tabPanel">
-        <h2>Stock de <span id="ownerName">—</span></h2>
-        <div class="grid cols-3">
-          <div class="section">
-            <h3 style="margin-top:0">Agregar producto</h3>
-            <div class="grid cols-1">
-              <label>Nombre</label>
-              <input id="pName" class="input" placeholder="Arroz 5kg" />
-              <label style="margin-top:8px">SKU / Código</label>
-              <input id="pSku" class="input" placeholder="ARZ-5KG" />
-              <label style="margin-top:8px">Categoría</label>
-              <input id="pCat" class="input" placeholder="Granos" />
-              <label style="margin-top:8px">Costo por unidad (S/)</label>
-              <input id="pCost" type="number" step="0.01" class="input" placeholder="8.50" />
-              <label style="margin-top:8px">Precio al consumidor (S/)</label>
-              <input id="pPrice" type="number" step="0.01" class="input" placeholder="10.90" />
-              <label style="margin-top:8px">Stock (unidades)</label>
-              <input id="pQty" type="number" step="1" class="input" placeholder="20" />
-              <label style="margin-top:8px">Fecha de vencimiento</label>
-              <input id="pExp" type="date" class="input" />
-            </div>
-            <div class="toolbar" style="margin-top:12px">
-              <button id="btnAdd" class="btn success">Agregar</button>
-              <button id="btnClear" class="btn ghost">Limpiar</button>
-              <span class="notice">El costo total se calcula como <strong>stock × costo por unidad</strong>.</span>
-            </div>
-          </div>
-          <div class="section" style="grid-column: span 2">
-            <div class="toolbar">
-              <div class="pill"><span>📦</span>Productos: <span id="kpiItems" class="value" style="margin-left:6px">0</span></div>
-              <div class="pill"><span>💸</span>Costo total: <span id="kpiCosto" class="value" style="margin-left:6px">S/ 0.00</span></div>
-              <div class="pill"><span>⏰</span>Alertas FV: <span id="kpiAlerts" class="value" style="margin-left:6px">0</span></div>
-              <div class="right toolbar">
-                <input id="search" class="input" placeholder="Buscar por nombre o código" />
-              </div>
-            </div>
-            <div style="overflow:auto; margin-top:10px">
-              <table id="stockTable">
-                <thead>
-                  <tr>
-                    <th>Nombre</th>
-                    <th>SKU</th>
-                    <th>Cat.</th>
-                    <th>U. Costo</th>
-                    <th>Precio</th>
-                    <th>Stock</th>
-                    <th>Costo total</th>
-                    <th>Vence</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
-            </div>
-            <div style="margin-top:12px">
-              <h3 style="margin: 0 0 6px 0">Alertas de vencimiento</h3>
-              <div id="alerts" class="alert-list"></div>
-            </div>
-          </div>
+      <div class="plan best">
+        <h3>Plan Anual</h3>
+        <div class="price-big">S/ 300.00</div>
+        <div class="perday">≈ <strong>S/ 0.82</strong> por día (ahorras 2 meses)</div>
+        <ul class="checks" aria-hidden>
+          <li>Todo lo del plan mensual</li>
+          <li>Soporte técnico preferente</li>
+          <li>Actualizaciones garantizadas todo el año</li>
+        </ul>
+        <div class="convince" style="margin-top:10px">
+          <strong>Mensaje de convencimiento:</strong>
+          Con S/300 al año garantizas control todo el año por menos de 1 sol diario. El ahorro por evitar una multa o recuperar mermas suele cubrir con creces este importe.
         </div>
+
+        <a class="cta-whatsapp" target="_blank" rel="noopener" href="https://wa.me/51949104580?text=Hola%20quiero%20el%20Plan%20Anual%20S%20300%20de%20CACE">
+          Contratar Anual
+        </a>
       </div>
-
-      <!-- VENTAS TAB -->
-      <div id="ventasTab" class="tabPanel hidden">
-        <h2>Ventas</h2>
-        <div class="grid cols-2">
-          <div class="section">
-            <h3 style="margin-top:0">Registrar venta</h3>
-            <div class="grid cols-1">
-              <label>Producto</label>
-              <select id="saleProduct"></select>
-              <label style="margin-top:8px">Cantidad</label>
-              <input id="saleQty" class="input" type="number" step="1" placeholder="1" />
-              <label style="margin-top:8px">Precio de venta por unidad (S/)</label>
-              <input id="salePrice" class="input" type="number" step="0.01" placeholder="10.90" />
-              <label style="margin-top:8px">Fecha</label>
-              <input id="saleDate" class="input" type="date" />
-            </div>
-            <div class="toolbar" style="margin-top:12px">
-              <button id="btnSale" class="btn primary">Guardar venta</button>
-              <span id="saleMsg" class="notice"></span>
-            </div>
-          </div>
-          <div class="section">
-            <div class="toolbar">
-              <div class="pill"><span>🧾</span>Operaciones: <span id="kpiVentas" class="value" style="margin-left:6px">0</span></div>
-              <div class="pill"><span>💰</span>Ingresos: <span id="kpiIngresos" class="value" style="margin-left:6px">S/ 0.00</span></div>
-              <div class="pill"><span>🧮</span>Utilidad: <span id="kpiUtilidad" class="value" style="margin-left:6px">S/ 0.00</span></div>
-            </div>
-            <div style="overflow:auto; margin-top:10px">
-              <table id="salesTable">
-                <thead>
-                  <tr>
-                    <th>Fecha</th>
-                    <th>Producto</th>
-                    <th>Cant.</th>
-                    <th>P. Venta</th>
-                    <th>Ingresos</th>
-                    <th>Costo</th>
-                    <th>Utilidad</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- GRÁFICOS TAB -->
-      <div id="graficosTab" class="tabPanel hidden">
-        <h2>Gráficos y evaluación</h2>
-        <div class="grid cols-2">
-          <div class="section">
-            <h3 style="margin-top:0">Ingresos vs Costo (últimos 30 días)</h3>
-            <canvas id="chartLine" height="140"></canvas>
-          </div>
-          <div class="section">
-            <h3 style="margin-top:0">Rendimiento por producto</h3>
-            <div class="notice">Flecha <span class="arrow up">▲</span> verde: sube / <span class="arrow down">▼</span> roja: baja / <span class="arrow flat">—</span> amarilla: se mantiene.</div>
-            <div id="scoreList" style="margin-top:10px; display:flex; flex-direction:column; gap:8px"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- NUEVA: REPORTE TRIBUTARIO TAB -->
-      <div id="tributarioTab" class="tabPanel hidden">
-        <h2>Reporte Tributario (NRUS)</h2>
-
-        <div class="grid cols-2">
-          <!-- MENSUAL -->
-          <div class="section">
-            <div id="rtMonthly" class="statusBox">
-              <div class="statusDot"></div>
-              <div class="statusBody">
-                <h4>Control mensual – Límite NRUS: <strong>S/ 8,000</strong></h4>
-                <div class="big" id="rtMonthlyAmount">S/ 0.00</div>
-                <div class="mini">
-                  <span id="rtMonthlyMsg">Sin movimientos en el mes.</span><br/>
-                  <span id="rtMonthlyLeft"></span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- ANUAL -->
-          <div class="section">
-            <div id="rtYearly" class="statusBox">
-              <div class="statusDot"></div>
-              <div class="statusBody">
-                <h4>Control anual – Límite NRUS: <strong>S/ 96,000</strong></h4>
-                <div class="big" id="rtYearlyAmount">S/ 0.00</div>
-                <div class="mini">
-                  <span id="rtYearlyMsg">Sin movimientos en el año.</span><br/>
-                  <span id="rtYearlyLeft"></span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- CATEGORÍA -->
-          <div class="section" style="grid-column: span 2">
-            <h3 style="margin:0 0 8px 0">Categoría NRUS correspondiente (mensual)</h3>
-            <div class="nrusCard">
-              <div>
-                <div id="rtNRUSCat" class="nrusBadge">—</div>
-                <div class="mini" id="rtNRUSNote" style="margin-top:6px">Se calcula según ventas del mes.</div>
-              </div>
-              <div class="pill"><span>ℹ️</span><span id="rtNRUSHelp">Cat. 1: ≤ S/ 5,000 → cuota S/ 20 · Cat. 2: > S/ 5,000 y ≤ S/ 8,000 → cuota S/ 50</span></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- SELLO + REFERENCIA SUNAT -->
-        <div class="legalBox">
-          <div class="sunat-seal" aria-hidden="true"></div>
-          <div class="text">
-            Información basada en el <strong>Nuevo Régimen Único Simplificado (NRUS)</strong> – SUNAT.<br/>
-            Fuente oficial: <a href="https://emprender.sunat.gob.pe/ruc/regimenes-tributarios-mype/nuevo-regimen-unico-simplificado-nuevo-rus" target="_blank" rel="noopener">SUNAT – Emprender: NRUS</a> · Límites referenciales: S/ 8,000 mensual y S/ 96,000 anual; categorías NRUS Cat. 1 (≤ 5,000 → S/ 20) y Cat. 2 (> 5,000 y ≤ 8,000 → S/ 50).
-          </div>
-        </div>
-      </div>
-
-      <!-- EXPORTAR TAB -->
-      <div id="exportarTab" class="tabPanel hidden">
-        <h2>Exportar</h2>
-        <div class="section">
-          <div class="toolbar">
-            <button id="btnExportStock" class="btn success">Descargar Stock en Excel</button>
-            <button id="btnExportSales" class="btn success">Descargar Ventas en Excel</button>
-            <span class="notice">Se descargará un archivo .xlsx con su información.</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- ADMIN TAB -->
-      <div id="adminTab" class="tabPanel hidden">
-        <h2>Admin – Cuentas de usuarios</h2>
-        <div class="section">
-          <p class="notice">Aquí puede preconfigurar usuarios y contraseñas. <strong>Solo visible para el administrador</strong> si inicia con el usuario <code>admin</code>.</p>
-          <div class="grid cols-2">
-            <div>
-              <h3 style="margin-top:0">Crear usuario</h3>
-              <input id="newU" class="input" placeholder="usuario" />
-              <input id="newP" type="password" class="input" placeholder="contraseña" style="margin-top:8px" />
-              <div class="toolbar" style="margin-top:10px">
-                <button id="btnCreateUser" class="btn primary">Crear</button>
-                <span id="adminMsg" class="notice"></span>
-              </div>
-            </div>
-            <div>
-              <h3 style="margin-top:0">Usuarios existentes</h3>
-              <div id="usersList" class="notice"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
     </section>
 
-    <div class="footer">© <span id="year"></span> BodegaManager. Interfaz translúcida y llamativa para emprendedores.</div>
+    <!-- FAQ -->
+    <section class="faq" aria-label="Preguntas frecuentes">
+      <h3>Preguntas frecuentes</h3>
+      <div class="qa">
+        <h5>¿Puedo probar antes de pagar?</h5>
+        <p>Sí: ofrecemos 7 días de prueba para que veas resultados antes de tomar una decisión. Te acompañamos en la configuración inicial.</p>
+      </div>
+      <div class="qa">
+        <h5>¿Necesito internet todo el tiempo?</h5>
+        <p>La app funciona mejor con internet. En zonas con conexión intermitente tenemos opciones de sincronización que permiten operar y luego sincronizar los datos.</p>
+      </div>
+      <div class="qa">
+        <h5>¿Puedo llevar fiados y registrar pagos con Yape/Plin?</h5>
+        <p>Sí. Puedes registrar fiados, programar recordatorios y marcar pagos por Yape, Plin o transferencias bancarias.</p>
+      </div>
+    </section>
+
+    <footer>
+      <div class="footer-small">© <strong>CACE</strong> — BodegaManager. Interfaz y servicio pensados para emprendedores. · RUC: 10713763158</div>
+    </footer>
   </div>
 
+  <!-- Floating WhatsApp CTA -->
+  <a class="float-wa" target="_blank" rel="noopener" href="https://wa.me/51949104580?text=Hola%20Arnie%2C%20quiero%20más%20info%20sobre%20CACE%20BodegaManager">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M20.5 3.5H3.5C2.7 3.5 2 4.2 2 5v11.5c0 .5.2.9.5 1.2L6 22.5c.3.3.7.5 1.2.5H20.5c.8 0 1.5-.7 1.5-1.5V5c0-.8-.7-1.5-1.5-1.5z" fill="white" opacity=".06"/></svg>
+    <span>Hablar por WhatsApp</span>
+  </a>
+
   <script>
-    /****************************
-     * Utilidades
-     ****************************/
-    const $ = sel => document.querySelector(sel);
-    const $$ = sel => Array.from(document.querySelectorAll(sel));
-    const fmtMoney = n => `S/ ${Number(n||0).toFixed(2)}`;
-    const todayISO = () => new Date().toISOString().slice(0,10);
-    const toISO = d => new Date(d).toISOString().slice(0,10);
-    const prettyDate = d => {
-      if(!d) return '—';
-      const dt = new Date(d);
-      const dd = String(dt.getDate()).padStart(2,'0');
-      const mm = String(dt.getMonth()+1).padStart(2,'0');
-      const yy = dt.getFullYear();
-      return `${dd}/${mm}/${yy}`;
-    };
-    const ymd = (date)=> {
-      const d = new Date(date);
-      return { y: d.getFullYear(), m: d.getMonth()+1, d: d.getDate() };
-    };
-    const monthKey = (date) => {
-      const d = new Date(date);
-      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-    };
-    const yearKey = (date) => String(new Date(date).getFullYear());
-    const uid = () => Math.random().toString(36).slice(2,9);
-
-    /****************************
-     * Simulación de base de datos por usuario (localStorage)
-     ****************************/
-    const STORAGE = {
-      key: (user, name) => `bodega:${user}:${name}`,
-      get(user, name, def){
-        try{ return JSON.parse(localStorage.getItem(this.key(user,name))) ?? def }catch{ return def }
-      },
-      set(user, name, val){ localStorage.setItem(this.key(user,name), JSON.stringify(val)); },
-      remove(user, name){ localStorage.removeItem(this.key(user,name)); }
-    };
-
-    /****************************
-     * Gestión de usuarios
-     ****************************/
-    const USERS_KEY = 'bodega:__users__';
-    const Users = {
-      all(){ try{ return JSON.parse(localStorage.getItem(USERS_KEY))||{admin:'admin123'} }catch{ return {admin:'admin123'} }},
-      save(obj){ localStorage.setItem(USERS_KEY, JSON.stringify(obj)); },
-      create(u,p){ const all=this.all(); if(all[u]) return false; all[u]=p; this.save(all); return true; },
-      remove(u){ const all=this.all(); delete all[u]; this.save(all); }
-    };
-
-    /****************************
-     * Estado global de sesión
-     ****************************/
-    const Session = {
-      get user(){ return sessionStorage.getItem('bodega:user') },
-      set user(v){ sessionStorage.setItem('bodega:user', v) }
-    };
-
-    /****************************
-     * Modelos por usuario
-     ****************************/
-    const DB = {
-      products(){ return STORAGE.get(Session.user, 'products', []) },
-      saveProducts(list){ STORAGE.set(Session.user, 'products', list) },
-      sales(){ return STORAGE.get(Session.user, 'sales', []) },
-      saveSales(list){ STORAGE.set(Session.user, 'sales', list) },
-    };
-
-    /****************************
-     * LOGIN
-     ****************************/
-    function attemptLogin(){
-      const u = $('#loginUser').value.trim();
-      const p = $('#loginPass').value;
-      const users = Users.all();
-      if(!users[u] || users[u] !== p){
-        $('#loginMsg').textContent = 'Usuario o contraseña inválidos';
-        return;
-      }
-      Session.user = u;
-      $('#loginMsg').textContent = '';
-      initApp();
-    }
-
-    $('#btnLogin').addEventListener('click', attemptLogin);
-    $('#loginPass').addEventListener('keydown', e=>{ if(e.key==='Enter') attemptLogin(); });
-
-    /****************************
-     * App Init / Logout
-     ****************************/
-    function initApp(){
-      if(!Session.user){
-        $('#loginView').classList.remove('hidden');
-        $('#dashboard').classList.add('hidden');
-        $('#userBox').textContent = '';
-        return;
-      }
-      $('#loginView').classList.add('hidden');
-      $('#dashboard').classList.remove('hidden');
-      $('#userBox').textContent = `Conectado como ${Session.user}`;
-      $('#ownerName').textContent = Session.user;
-
-      refreshProductsUI();
-      refreshSalesUI();
-      refreshAlerts();
-      refreshCharts();
-      refreshUsersAdmin();
-      populateSaleProducts();
-      refreshTaxReport(); // <— NUEVO
-      // Solo admin puede ver la pestaña Admin
-      const adminTabBtn = $(`.tab[data-tab="adminTab"]`);
-      if(Session.user==='admin'){ adminTabBtn.classList.remove('hidden'); }
-      else { adminTabBtn.classList.add('hidden'); }
-    }
-
-    $('#btnLogout').addEventListener('click', ()=>{ sessionStorage.removeItem('bodega:user'); initApp(); });
-
-    /****************************
-     * Tabs
-     ****************************/
-    $$('.tab').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        $$('.tab').forEach(b=>b.classList.remove('active'));
-        btn.classList.add('active');
-        $$('.tabPanel').forEach(p=>p.classList.add('hidden'));
-        document.getElementById(btn.dataset.tab).classList.remove('hidden');
-      })
+    // Small JS to enable accordions and some micro-interactions
+    document.querySelectorAll('.qa h5').forEach(h=>{
+      h.addEventListener('click', ()=> {
+        const p = h.nextElementSibling;
+        if(!p) return;
+        const isVisible = p.style.display === 'block';
+        document.querySelectorAll('.qa p').forEach(x=>x.style.display='none');
+        p.style.display = isVisible ? 'none' : 'block';
+      });
     });
 
-    /****************************
-     * Productos (CRUD)
-     ****************************/
-    function readProductForm(){
-      return {
-        id: uid(),
-        name: $('#pName').value.trim(),
-        sku: $('#pSku').value.trim(),
-        category: $('#pCat').value.trim(),
-        unitCost: Number($('#pCost').value||0),
-        price: Number($('#pPrice').value||0),
-        qty: parseInt($('#pQty').value||0,10),
-        expiry: $('#pExp').value || null,
-        createdAt: todayISO(),
-      };
-    }
-
-    function clearProductForm(){
-      ['#pName','#pSku','#pCat','#pCost','#pPrice','#pQty','#pExp'].forEach(s=>$(s).value='');
-    }
-
-    function addProduct(){
-      const p = readProductForm();
-      if(!p.name || !p.sku){ alert('Nombre y SKU son obligatorios'); return }
-      if(p.qty<0 || p.unitCost<0 || p.price<0){ alert('Valores no válidos'); return }
-      const list = DB.products();
-      list.push(p);
-      DB.saveProducts(list);
-      clearProductForm();
-      refreshProductsUI();
-      populateSaleProducts();
-      refreshAlerts();
-    }
-
-    $('#btnAdd').addEventListener('click', addProduct);
-    $('#btnClear').addEventListener('click', clearProductForm);
-
-    function renderProductRow(p){
-      const totalCost = p.qty * p.unitCost;
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><input class="input inline" value="${p.name}" data-field="name" /></td>
-        <td><input class="input inline" value="${p.sku}" data-field="sku" /></td>
-        <td><input class="input inline" value="${p.category||''}" data-field="category" /></td>
-        <td><input class="input inline" type="number" step="0.01" value="${p.unitCost}" data-field="unitCost" /></td>
-        <td><input class="input inline" type="number" step="0.01" value="${p.price}" data-field="price" /></td>
-        <td><input class="input inline" type="number" step="1" value="${p.qty}" data-field="qty" /></td>
-        <td>${fmtMoney(totalCost)}</td>
-        <td><input class="input inline" type="date" value="${p.expiry||''}" data-field="expiry" /></td>
-        <td>${renderExpiryBadge(p)}</td>
-        <td>
-          <button class="btn flat" data-action="save">Guardar</button>
-          <button class="btn flat" data-action="del">Eliminar</button>
-        </td>
-      `;
-      tr.querySelector('[data-action="save"]').addEventListener('click', ()=> saveRow(tr, p.id));
-      tr.querySelector('[data-action="del"]').addEventListener('click', ()=> deleteProduct(p.id));
-      return tr;
-    }
-
-    function renderExpiryBadge(p){
-      if(!p.expiry) return '<span class="pill">Sin FV</span>';
-      const now = new Date();
-      const exp = new Date(p.expiry);
-      const diffDays = Math.ceil((exp - now) / (1000*60*60*24));
-      if(p.qty<=0) return '<span class="pill">Sin stock</span>';
-      if(diffDays < 0) return `<span class="pill red">Vencido ${prettyDate(p.expiry)}</span>`;
-      if(diffDays <= 7) return `<span class="pill yellow">Vence pronto (${diffDays} día(s))</span>`;
-      return `<span class="pill green">OK (${prettyDate(p.expiry)})</span>`;
-    }
-
-    function saveRow(tr, id){
-      const inputs = tr.querySelectorAll('input.inline');
-      const list = DB.products();
-      const idx = list.findIndex(x=>x.id===id);
-      if(idx===-1) return;
-      const obj = {...list[idx]};
-      inputs.forEach(inp=>{
-        const f = inp.dataset.field;
-        let val = inp.value;
-        if(['unitCost','price','qty'].includes(f)) val = Number(val);
-        obj[f] = val;
+    // Slight entrance animation for benefits
+    window.addEventListener('load', ()=> {
+      document.querySelectorAll('.card-benefit').forEach((el,i)=>{
+        el.style.opacity = 0;
+        el.style.transform = 'translateY(12px)';
+        setTimeout(()=> {
+          el.style.transition = 'opacity .6s ease, transform .6s ease';
+          el.style.opacity = 1;
+          el.style.transform = 'translateY(0)';
+        }, 120 * i);
       });
-      list[idx]=obj;
-      DB.saveProducts(list);
-      refreshProductsUI();
-      populateSaleProducts();
-      refreshAlerts();
-    }
-
-    function deleteProduct(id){
-      if(!confirm('¿Eliminar producto?')) return;
-      const list = DB.products().filter(x=>x.id!==id);
-      DB.saveProducts(list);
-      refreshProductsUI();
-      populateSaleProducts();
-      refreshAlerts();
-    }
-
-    function refreshProductsUI(){
-      const term = $('#search').value?.toLowerCase?.()||'';
-      const list = DB.products().filter(p=>
-        p.name.toLowerCase().includes(term) || p.sku.toLowerCase().includes(term)
-      );
-      const tbody = $('#stockTable tbody');
-      tbody.innerHTML = '';
-      list.forEach(p=> tbody.appendChild(renderProductRow(p)) );
-
-      // KPI
-      const all = DB.products();
-      const items = all.length;
-      const costoTotal = all.reduce((acc,p)=> acc + p.qty * p.unitCost, 0);
-      $('#kpiItems').textContent = items;
-      $('#kpiCosto').textContent = fmtMoney(costoTotal);
-    }
-
-    $('#search').addEventListener('input', refreshProductsUI);
-
-    /****************************
-     * Alertas de vencimiento
-     ****************************/
-    function computeAlerts(){
-      const list = DB.products();
-      const alerts = [];
-      const now = new Date();
-      for(const p of list){
-        if(!p.expiry) continue;
-        const exp = new Date(p.expiry);
-        const diffDays = Math.ceil((exp - now) / (1000*60*60*24));
-        if(p.qty<=0) continue; // si no hay stock, no alertar
-        if(diffDays < 0){
-          alerts.push({type:'danger', msg:`DESECHAR PRODUCTO "${p.name}" – venció el ${prettyDate(p.expiry)}`});
-        } else if(diffDays <= 7){
-          alerts.push({type:'warn', msg:`"${p.name}" está por vencer en ${diffDays} día(s) (${prettyDate(p.expiry)})`});
-        }
-      }
-      return alerts;
-    }
-
-    function refreshAlerts(){
-      const list = computeAlerts();
-      $('#kpiAlerts').textContent = list.length;
-      const box = $('#alerts');
-      box.innerHTML = '';
-      list.forEach(a=>{
-        const div = document.createElement('div');
-        div.className = `alert-item ${a.type==='danger'?'alert-danger':'alert-warn'}`;
-        div.textContent = a.msg;
-        box.appendChild(div);
-      })
-    }
-
-    // Recalcular alertas cada 60s
-    setInterval(()=>{ if(Session.user) refreshAlerts(); }, 60000);
-
-    /****************************
-     * Ventas
-     ****************************/
-    function populateSaleProducts(){
-      const sel = $('#saleProduct');
-      sel.innerHTML = '';
-      DB.products().forEach(p=>{
-        const opt = document.createElement('option');
-        opt.value = p.id; opt.textContent = `${p.name} (${p.sku}) – Stock: ${p.qty}`;
-        sel.appendChild(opt);
-      });
-    }
-
-    function addSale(){
-      const productId = $('#saleProduct').value;
-      const qty = parseInt($('#saleQty').value||0,10);
-      const price = Number($('#salePrice').value||0);
-      const date = $('#saleDate').value || todayISO();
-      const products = DB.products();
-      const p = products.find(x=>x.id===productId);
-      if(!p){ $('#saleMsg').textContent = 'Seleccione producto'; return }
-      if(qty<=0){ $('#saleMsg').textContent = 'Cantidad inválida'; return }
-      if(qty>p.qty){ $('#saleMsg').textContent = 'Stock insuficiente'; return }
-      const revenue = qty * price;
-      const cost = qty * Number(p.unitCost||0);
-      const util = revenue - cost;
-
-      // guardar venta
-      const sales = DB.sales();
-      sales.push({ id: uid(), productId, name:p.name, qty, price, revenue, cost, profit: util, date });
-      DB.saveSales(sales);
-
-      // descontar stock
-      p.qty -= qty;
-      DB.saveProducts(products);
-
-      $('#saleMsg').textContent = 'Venta registrada';
-      $('#saleQty').value='';
-      $('#salePrice').value='';
-
-      refreshSalesUI();
-      refreshProductsUI();
-      populateSaleProducts();
-      refreshAlerts();
-      refreshCharts();
-      refreshTaxReport(); // <— NUEVO: actualizar reporte tributario
-    }
-
-    $('#btnSale').addEventListener('click', addSale);
-
-    function refreshSalesUI(){
-      const tb = $('#salesTable tbody');
-      const list = DB.sales().sort((a,b)=> a.date.localeCompare(b.date));
-      tb.innerHTML = '';
-      list.forEach(s=>{
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${prettyDate(s.date)}</td>
-          <td>${s.name}</td>
-          <td>${s.qty}</td>
-          <td>${fmtMoney(s.price)}</td>
-          <td>${fmtMoney(s.revenue)}</td>
-          <td>${fmtMoney(s.cost)}</td>
-          <td>${fmtMoney(s.profit)}</td>
-          <td><button class="btn flat" data-id="${s.id}">Eliminar</button></td>
-        `;
-        tr.querySelector('button').addEventListener('click', ()=> deleteSale(s.id));
-        tb.appendChild(tr);
-      })
-
-      const ingresos = list.reduce((a,x)=>a+x.revenue,0);
-      const costos = list.reduce((a,x)=>a+x.cost,0);
-      const utilidad = ingresos - costos;
-      $('#kpiVentas').textContent = list.length;
-      $('#kpiIngresos').textContent = fmtMoney(ingresos);
-      $('#kpiUtilidad').textContent = fmtMoney(utilidad);
-    }
-
-    function deleteSale(id){
-      if(!confirm('¿Eliminar registro de venta?')) return;
-      const list = DB.sales();
-      const idx = list.findIndex(x=>x.id===id);
-      if(idx===-1) return;
-      // reponer stock
-      const s = list[idx];
-      const products = DB.products();
-      const p = products.find(x=>x.id===s.productId);
-      if(p){ p.qty += s.qty; DB.saveProducts(products); }
-      list.splice(idx,1);
-      DB.saveSales(list);
-      refreshSalesUI();
-      refreshProductsUI();
-      populateSaleProducts();
-      refreshAlerts();
-      refreshCharts();
-      refreshTaxReport(); // <— NUEVO: actualizar reporte tributario
-    }
-
-    /****************************
-     * Gráficos y evaluación
-     ****************************/
-    let lineChart;
-    function refreshCharts(){
-      // Serie diaria últimos 30 días
-      const days = [];
-      const mapRevenue = new Map();
-      const mapCost = new Map();
-      const now = new Date();
-      for(let i=29;i>=0;i--){
-        const d = new Date(now); d.setDate(now.getDate()-i);
-        const key = toISO(d);
-        days.push(prettyDate(key));
-        mapRevenue.set(key,0); mapCost.set(key,0);
-      }
-      DB.sales().forEach(s=>{
-        if(mapRevenue.has(s.date)){
-          mapRevenue.set(s.date, mapRevenue.get(s.date)+s.revenue);
-          mapCost.set(s.date, mapCost.get(s.date)+s.cost);
-        }
-      });
-      const revSeries = Array.from(mapRevenue.values());
-      const costSeries = Array.from(mapCost.values());
-
-      const ctx = document.getElementById('chartLine');
-      if(lineChart) lineChart.destroy();
-      lineChart = new Chart(ctx, {
-        type:'line',
-        data:{ labels: days, datasets:[
-          { label:'Ingresos', data: revSeries },
-          { label:'Costo', data: costSeries },
-        ]},
-        options:{ responsive:true, maintainAspectRatio:false,
-          plugins:{ legend:{ labels:{ color:'#e5e7eb' } } },
-          scales:{ x:{ ticks:{ color:'#9ca3af'} }, y:{ ticks:{ color:'#9ca3af' } } }
-        }
-      });
-
-      // Rendimiento por producto (flechas)
-      const perfBox = $('#scoreList');
-      perfBox.innerHTML = '';
-      const byProd = new Map();
-      DB.sales().forEach(s=>{
-        const k = s.productId; if(!byProd.has(k)) byProd.set(k,{name:s.name, qty:0});
-        byProd.get(k).qty += s.qty;
-      });
-      DB.products().forEach(p=>{ if(!byProd.has(p.id)) byProd.set(p.id,{name:p.name, qty:0}); });
-      const arr = Array.from(byProd.values()).sort((a,b)=> b.qty-a.qty);
-      const top = arr.slice(0,8);
-      const max = top.length? top[0].qty : 0;
-      top.forEach((it)=>{
-        const ratio = max? it.qty / max : 0;
-        let arrow = '—', cls='flat';
-        if(ratio>=0.66) { arrow='▲'; cls='up'; }
-        else if(ratio<=0.33 && it.qty>0){ arrow='▼'; cls='down'; }
-        const row = document.createElement('div');
-        row.className = 'kpi';
-        row.innerHTML = `<span class="arrow ${cls}">${arrow}</span> <div class="value" style="min-width:38px">${it.qty}</div> <div class="subtle">${it.name}</div>`;
-        perfBox.appendChild(row);
-      })
-    }
-
-    /****************************
-     * NUEVO: Reporte Tributario (NRUS)
-     ****************************/
-    const NRUS = {
-      MONTHLY_LIMIT: 8000,
-      YEARLY_LIMIT: 96000,
-      CAT1_LIMIT: 5000,
-      WARNING_RATIO: 0.85, // 85% del tope -> amarillo
-    };
-
-    function getMonthlyRevenueCurrent(){
-      const mk = monthKey(new Date());
-      return DB.sales().reduce((acc,s)=> acc + (monthKey(s.date)===mk ? s.revenue : 0), 0);
-    }
-    function getYearlyRevenueCurrent(){
-      const yk = yearKey(new Date());
-      return DB.sales().reduce((acc,s)=> acc + (yearKey(s.date)===yk ? s.revenue : 0), 0);
-    }
-
-    function paintStatus(el, state){
-      el.classList.remove('ok','warn','over');
-      el.classList.add(state);
-    }
-
-    function refreshTaxReport(){
-      if(!Session.user) return;
-
-      // MENSUAL
-      const m = getMonthlyRevenueCurrent();
-      $('#rtMonthlyAmount').textContent = fmtMoney(m);
-      const mLeft = Math.max(0, NRUS.MONTHLY_LIMIT - m);
-      $('#rtMonthlyLeft').textContent = `Restante del tope mensual: ${fmtMoney(mLeft)} (tope: S/ ${NRUS.MONTHLY_LIMIT.toFixed(2)})`;
-
-      const mBox = $('#rtMonthly');
-      if(m <= NRUS.MONTHLY_LIMIT * NRUS.WARNING_RATIO){
-        paintStatus(mBox,'ok');
-        $('#rtMonthlyMsg').textContent = 'En rango permitido del NRUS para este mes.';
-      } else if(m <= NRUS.MONTHLY_LIMIT){
-        paintStatus(mBox,'warn');
-        $('#rtMonthlyMsg').textContent = 'Atención: estás cerca de alcanzar el tope mensual del NRUS.';
-      } else {
-        paintStatus(mBox,'over');
-        $('#rtMonthlyMsg').textContent = 'Has superado el tope mensual del NRUS. Evalúa si corresponde cambiar de régimen.';
-      }
-
-      // ANUAL
-      const y = getYearlyRevenueCurrent();
-      $('#rtYearlyAmount').textContent = fmtMoney(y);
-      const yLeft = Math.max(0, NRUS.YEARLY_LIMIT - y);
-      $('#rtYearlyLeft').textContent = `Restante del tope anual: ${fmtMoney(yLeft)} (tope: S/ ${NRUS.YEARLY_LIMIT.toFixed(2)})`;
-
-      const yBox = $('#rtYearly');
-      if(y <= NRUS.YEARLY_LIMIT * NRUS.WARNING_RATIO){
-        paintStatus(yBox,'ok');
-        $('#rtYearlyMsg').textContent = 'En rango permitido del NRUS para este año.';
-      } else if(y <= NRUS.YEARLY_LIMIT){
-        paintStatus(yBox,'warn');
-        $('#rtYearlyMsg').textContent = 'Atención: estás cerca de alcanzar el tope anual del NRUS.';
-      } else {
-        paintStatus(yBox,'over');
-        $('#rtYearlyMsg').textContent = 'Has superado el tope anual del NRUS. Evalúa si corresponde cambiar de régimen.';
-      }
-
-      // CATEGORÍA (según ventas del mes)
-      const catEl = $('#rtNRUSCat');
-      const noteEl = $('#rtNRUSNote');
-      catEl.classList.remove('nrusCat1','nrusCat2','nrusOut');
-      if(m <= NRUS.CAT1_LIMIT){
-        catEl.textContent = 'Categoría 1 (cuota S/ 20)';
-        catEl.classList.add('nrusCat1');
-        noteEl.textContent = 'Tus ventas del mes están en Categoría 1 del NRUS.';
-      } else if(m > NRUS.CAT1_LIMIT && m <= NRUS.MONTHLY_LIMIT){
-        catEl.textContent = 'Categoría 2 (cuota S/ 50)';
-        catEl.classList.add('nrusCat2');
-        noteEl.textContent = 'Tus ventas del mes están en Categoría 2 del NRUS.';
-      } else {
-        catEl.textContent = 'Fuera de límite NRUS (mensual)';
-        catEl.classList.add('nrusOut');
-        noteEl.textContent = 'Has superado el tope mensual del NRUS; podría corresponder migrar de régimen.';
-      }
-    }
-
-    /****************************
-     * Exportar a Excel (SheetJS)
-     ****************************/
-    function exportJSONtoXLSX(filename, sheets){
-      const wb = XLSX.utils.book_new();
-      for(const {name, data} of sheets){
-        const ws = XLSX.utils.json_to_sheet(data);
-        XLSX.utils.book_append_sheet(wb, ws, name);
-      }
-      XLSX.writeFile(wb, filename);
-    }
-
-    $('#btnExportStock').addEventListener('click', ()=>{
-      const data = DB.products().map(p=>({
-        Nombre:p.name, SKU:p.sku, Categoria:p.category, CostoUnidad:p.unitCost, Precio:p.price, Stock:p.qty,
-        CostoTotal: (p.qty*p.unitCost), Vence: prettyDate(p.expiry)
-      }));
-      const fname = `${Session.user}_stock_${todayISO()}.xlsx`;
-      exportJSONtoXLSX(fname, [{name:'Stock', data}]);
     });
 
-    $('#btnExportSales').addEventListener('click', ()=>{
-      const data = DB.sales().map(s=>({
-        Fecha: prettyDate(s.date), Producto:s.name, Cantidad:s.qty, Precio:s.price, Ingresos:s.revenue, Costo:s.cost, Utilidad:s.profit
-      }));
-      const fname = `${Session.user}_ventas_${todayISO()}.xlsx`;
-      exportJSONtoXLSX(fname, [{name:'Ventas', data}]);
-    });
-
-    /****************************
-     * Admin – crear usuarios (solo admin)
-     ****************************/
-    function refreshUsersAdmin(){
-      if(Session.user!=='admin'){ $('#usersList').innerHTML = '<em>No autorizado</em>'; return; }
-      const all = Users.all();
-      const box = $('#usersList');
-      box.innerHTML = '';
-      const ul = document.createElement('ul');
-      Object.entries(all).forEach(([u,p])=>{
-        const li = document.createElement('li');
-        li.innerHTML = `<code>${u}</code> <button class="btn flat" data-u="${u}">Eliminar</button>`
-        if(u==='admin') li.querySelector('button').disabled=true;
-        ul.appendChild(li);
-      });
-      box.appendChild(ul);
-      box.querySelectorAll('button').forEach(b=>{
-        b.addEventListener('click', ()=>{
-          const u = b.dataset.u; if(confirm(`¿Eliminar ${u}?`)){ Users.remove(u); refreshUsersAdmin(); }
-        })
-      })
+    // Smooth scroll if the user came with a hash for pricing etc.
+    if(location.hash){
+      const el = document.querySelector(location.hash);
+      if(el) el.scrollIntoView({behavior:'smooth'});
     }
-
-    $('#btnCreateUser').addEventListener('click', ()=>{
-      if(Session.user!=='admin'){ $('#adminMsg').textContent='No autorizado'; return }
-      const u = $('#newU').value.trim();
-      const p = $('#newP').value;
-      if(!u||!p){ $('#adminMsg').textContent='Complete usuario y contraseña'; return }
-      if(Users.create(u,p)){
-        $('#adminMsg').textContent='Usuario creado';
-        $('#newU').value=''; $('#newP').value='';
-        refreshUsersAdmin();
-      } else {
-        $('#adminMsg').textContent='El usuario ya existe';
-      }
-    });
-
-    /****************************
-     * Inicialización
-     ****************************/
-    document.getElementById('year').textContent = new Date().getFullYear();
-    $('#saleDate').value = todayISO();
-    if(Session.user){ initApp(); }
-    else { $('#loginView').classList.remove('hidden'); }
-
-    // También actualizamos el Reporte Tributario si cambian de pestaña (por si hay retraso en DOM)
-    document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refreshTaxReport(); });
   </script>
 </body>
 </html>
-
-
